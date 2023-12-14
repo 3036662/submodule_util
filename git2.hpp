@@ -6,6 +6,11 @@
 
 class Git2
 {
+private:
+    git_repository* ptrRootRepo=nullptr;
+    std::string repoPath;
+
+
 public:
         Git2();
         ~Git2();
@@ -16,12 +21,7 @@ public:
     // C callback for git_submodule_foreach
     static int SubmouduleForeachCallbackC(git_submodule *sm,  const char *name, void *payload);
     std::vector<Submodule> getSubmodules();
-
-private:
-        git_repository* ptrRepo=nullptr;
-        std::string repoPath;
-
-
+    std::vector<Submodule> getSubmodules( git_repository* ptrRepo);
 };
 
 

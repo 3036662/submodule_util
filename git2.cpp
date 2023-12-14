@@ -7,8 +7,8 @@ Git2::Git2(){
 }
 
 Git2::~Git2(){
-    if (ptrRepo){
-        git_repository_free(ptrRepo);
+    if (ptrRootRepo){
+        git_repository_free(ptrRootRepo);
     }
     git_libgit2_shutdown();
 }
@@ -17,7 +17,7 @@ Git2::~Git2(){
 bool Git2::open(const std::string& path){
     if (path.empty()) return false;
     repoPath =path;
-    int error = git_repository_open(&ptrRepo, repoPath.c_str());
+    int error = git_repository_open(&ptrRootRepo, repoPath.c_str());
     if (error){
         std::cerr<< std::endl << "Failed opening repo at  " <<path << std::endl;
         std::cerr << git_error_last()->message << std::endl;
@@ -28,7 +28,7 @@ bool Git2::open(const std::string& path){
 
 bool Git2::clone(const std::string& upstreamUrl, const std::string& path){
     if (upstreamUrl.empty() || path.empty()) return false;
-    int error= git_clone(&ptrRepo, upstreamUrl.c_str(), path.c_str(), NULL);
+    int error= git_clone(&ptrRootRepo, upstreamUrl.c_str(), path.c_str(), NULL);
     if  (error){
         std::cerr << "error while performing git clone "<< upstreamUrl  << std::endl;
          std::cerr << git_error_last()->message << std::endl;
@@ -38,6 +38,10 @@ bool Git2::clone(const std::string& upstreamUrl, const std::string& path){
 }
 
 std::vector<Submodule> Git2::getSubmodules(){
+    return getSubmodules(ptrRootRepo);
+}
+
+std::vector<Submodule> Git2::getSubmodules(git_repository* ptrRepo){
     std::vector<Submodule> res;
     int error =git_submodule_foreach(ptrRepo,Git2::SubmouduleForeachCallbackC,&res);
     if (error){
@@ -46,6 +50,16 @@ std::vector<Submodule> Git2::getSubmodules(){
     }
     for (auto it=res.begin(); it !=res.end(); ++it){
         it->owner=ptrRepo;
+    }
+    for (auto it_sm=res.begin();it_sm != res.end(); ++it_sm){
+        std::cout << *it_sm;
+        it_sm->init();
+        it_sm->update();
+        // recursive call - put submoduler submodule.subvec
+        // std::cout << "Getting submodules for module " << it_sm->name << " ..." << std::endl;
+        it_sm->subvec = getSubmodules(it_sm->getRepo());
+        // std::cout << std::endl << "Found " <<  it_sm->subvec.size() << " submodules for module " << it_sm->name << " ..." << std::endl;
+        it_sm->freeRepo();
     }
     return res;
 }

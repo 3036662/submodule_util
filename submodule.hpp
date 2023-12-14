@@ -7,7 +7,8 @@
 
 class  Submodule
 {
-    git_submodule* ptrSubmodule;
+    git_submodule* ptrSubmodule = nullptr;
+    git_repository*  ptrRepo = nullptr;
 public:
     const git_oid* ptrheadOidBinary;
     std::string headOid;
@@ -28,11 +29,14 @@ public:
 
     bool init(bool override=false);
     bool update(bool init=false);
+    git_repository* getRepo();
+    void freeRepo();
 
 private:
     void updatePtrSM();
     void freePtrSM();
     void printLastError() const;
+
 };
 
 

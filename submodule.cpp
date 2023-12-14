@@ -30,7 +30,7 @@ bool  Submodule::update(bool init){
     updatePtrSM();
     if (!ptrSubmodule)
         return false;
-    std::cout << "Updating submodule"<< name << " ..." << std::endl;
+    std::cout << "Updating submodule "<< name << " ..." << std::endl;
     int error= git_submodule_update(ptrSubmodule,init ? 1:0,NULL);
     if (error){
         std::cout << "Error updating submodule " << name << std::endl;
@@ -42,6 +42,27 @@ bool  Submodule::update(bool init){
     return true;
 }
 
+// get repo object for submodule
+git_repository* Submodule::getRepo(){
+    git_repository* repo=nullptr;
+    updatePtrSM();
+    int error = git_submodule_open(&repo,ptrSubmodule);
+    if (error){
+        std::cerr << "Error opening submodule " << name;
+        printLastError();
+        freePtrSM();
+        return nullptr;
+    }
+    freePtrSM();
+    ptrRepo =repo;
+    return repo;
+}
+
+// free repo object
+void Submodule::freeRepo(){
+    if (!ptrRepo) return;
+    git_repository_free(ptrRepo);
+}
 
 // --------------------------------------------------------
 // private
