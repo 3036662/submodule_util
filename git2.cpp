@@ -54,11 +54,16 @@ std::vector<Submodule> Git2::getSubmodules(git_repository* ptrRepo){
     for (auto it_sm=res.begin();it_sm != res.end(); ++it_sm){
         std::cout << *it_sm;
         it_sm->init();
-        it_sm->update();
+        if (it_sm->update())
+           ++total_submodules_updated;
         // recursive call - put submoduler submodule.subvec
-        // std::cout << "Getting submodules for module " << it_sm->name << " ..." << std::endl;
-        it_sm->subvec = getSubmodules(it_sm->getRepo());
-        // std::cout << std::endl << "Found " <<  it_sm->subvec.size() << " submodules for module " << it_sm->name << " ..." << std::endl;
+        if (curr_recursion_depth<max_recursion_depth){
+            ++curr_recursion_depth;
+            it_sm->subvec = getSubmodules(it_sm->getRepo());
+            --curr_recursion_depth;
+            if (!it_sm->subvec.empty())
+                ++recursion_depth_reached;
+        }
         it_sm->freeRepo();
     }
     return res;

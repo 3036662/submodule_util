@@ -7,12 +7,19 @@
 class Git2
 {
 private:
-    git_repository* ptrRootRepo=nullptr;
+
     std::string repoPath;
+    uint max_recursion_depth=20;
 
 
 public:
-        Git2();
+    git_repository* ptrRootRepo=nullptr;
+
+    uint curr_recursion_depth=0;
+    uint recursion_depth_reached=0;
+    uint total_submodules_updated=0;
+
+          Git2();
         ~Git2();
 
     bool open(const std::string& path);
