@@ -1,5 +1,7 @@
 #include "git2.hpp"
 #include <iostream>
+#include <memory>
+#include <cstring>
 
 
 Git2::Git2(){
@@ -37,36 +39,65 @@ bool Git2::clone(const std::string& upstreamUrl, const std::string& path){
     return true;
 }
 
-std::vector<Submodule> Git2::getSubmodules(){
-    return getSubmodules(ptrRootRepo);
+std::vector<Submodule> Git2::getSubmodules(){    
+    return getSubmodules(ptrRootRepo,"");
 }
 
-std::vector<Submodule> Git2::getSubmodules(git_repository* ptrRepo){
+std::vector<Submodule> Git2::getSubmodules(git_repository* ptrRepo, const std::string& parent_dir){
     std::vector<Submodule> res;
+    if (!ptrRepo){return res;}
     int error =git_submodule_foreach(ptrRepo,Git2::SubmouduleForeachCallbackC,&res);
     if (error){
         std::cerr << "Error getting submodules"<< std::endl;
-         std::cerr << git_error_last()->message << std::endl;
+        std::cerr << git_error_last()->message << std::endl;
     }
+    // resolve urls and paths
     for (auto it=res.begin(); it !=res.end(); ++it){
         it->owner=ptrRepo;
+        it->absolute_path=parent_dir;
+        if (!it->absolute_path.empty())
+            it->absolute_path+="/";
+        it->absolute_path+=it->path;
+        git_buf gitBuf{0,0,0};
+        error=git_submodule_resolve_url(&gitBuf,ptrRepo,it->url.c_str());
+        if (!error){
+            it->absolute_url = gitBuf.ptr;
+            git_buf_dispose(&gitBuf);
+        }
+        else
+            it->absolute_url=it->url;
     }
+    // init + update
     for (auto it_sm=res.begin();it_sm != res.end(); ++it_sm){
         std::cout << *it_sm;
         it_sm->init();
         if (it_sm->update())
            ++total_submodules_updated;
+        else{
+            std::cerr << "[WARINIG] Couldn't update " << it_sm->name << std::endl;
+            ++err_count;
+        }
         // recursive call - put submoduler submodule.subvec
         if (curr_recursion_depth<max_recursion_depth){
             ++curr_recursion_depth;
-            it_sm->subvec = getSubmodules(it_sm->getRepo());
+            it_sm->subvec = getSubmodules(it_sm->getRepo(),it_sm->path);
             --curr_recursion_depth;
             if (!it_sm->subvec.empty())
                 ++recursion_depth_reached;
         }
         it_sm->freeRepo();
     }
+    submodules=res;
     return res;
+}
+
+bool Git2::createTags(const std::string& version){
+    // for each submodule create tag
+    for (auto it=submodules.begin();it != submodules.end(); ++it){
+        //tag name && tag
+    }
+
+    return false;
 }
 
 // C callback for git_submodule_foreach
@@ -98,4 +129,10 @@ int Git2::SubmouduleForeachCallbackC(git_submodule *sm,  const char *name_, void
     }
     ptrRes->emplace_back(sm,head_oid,std::move(head_oid_Str),std::move(name),std::move(path),std::move(url));
     return 0;
+}
+
+// -------------- private --------------
+
+void Git2::printLastError() const{
+    std::cerr << git_error_last()->message << std::endl;
 }

@@ -10,10 +10,13 @@ private:
 
     std::string repoPath;
     uint max_recursion_depth=20;
+    std::vector<Submodule> submodules;
 
 
+    void printLastError() const;
 public:
     git_repository* ptrRootRepo=nullptr;
+    uint err_count=0;
 
     uint curr_recursion_depth=0;
     uint recursion_depth_reached=0;
@@ -27,8 +30,11 @@ public:
 
     // C callback for git_submodule_foreach
     static int SubmouduleForeachCallbackC(git_submodule *sm,  const char *name, void *payload);
+
     std::vector<Submodule> getSubmodules();
-    std::vector<Submodule> getSubmodules( git_repository* ptrRepo);
+    std::vector<Submodule> getSubmodules( git_repository* ptrRepo, const std::string& parent_dir);
+    bool createTags(const std::string& version);
+
 };
 
 

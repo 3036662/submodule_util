@@ -5,8 +5,8 @@ std::ostream& operator << (std::ostream& os, const Submodule& sm){
     os << std::setw(50) << std::setfill('_') <<"\n";
     os << "Submodule name: " << sm.name <<std::endl;
     os << "Head hash : " << sm.headOid << std::endl;
-    os << "Path: "  << sm.path << std::endl;
-    os << "URL : " << sm.url << std::endl;
+    os << "Path: "  << sm.absolute_path << std::endl;
+    os << "URL : " << sm.absolute_url << std::endl;
     return os;
 }
 
@@ -33,8 +33,9 @@ bool  Submodule::update(bool init){
     std::cout << "Updating submodule "<< name << " ..." << std::endl;
     int error= git_submodule_update(ptrSubmodule,init ? 1:0,NULL);
     if (error){
-        std::cout << "Error updating submodule " << name << std::endl;
+        std::cerr << "Error updating submodule " << name << std::endl;
         printLastError();
+        std::cerr <<"Check if " << headOid << " still exists at " << absolute_url <<std::endl;
         return false;
     }
     freePtrSM();
@@ -49,8 +50,7 @@ git_repository* Submodule::getRepo(){
     int error = git_submodule_open(&repo,ptrSubmodule);
     if (error){
         std::cerr << "Error opening submodule " << name;
-        printLastError();
-        freePtrSM();
+        printLastError();       
         return nullptr;
     }
     freePtrSM();
