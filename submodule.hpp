@@ -29,7 +29,7 @@ public:
                         const std::string& url_)
         : ptrSubmodule(sm_), ptrheadOidBinary(hOid),headOid(headOidStr_), name(name_), path(path_),url(url_){}
 
-    bool init(bool override=true);
+    bool init(bool override=false);
     bool update(bool init=false);
     git_repository* getRepo();
     void freeRepo();

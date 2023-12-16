@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include "submodule.hpp"
+#include "tag.hpp"
 
 class Git2
 {
@@ -12,8 +13,13 @@ private:
     uint max_recursion_depth=20;
     std::vector<Submodule> submodules;
 
+    void CreateTagsRecursive(const std::vector<Submodule>& vec, const std::string &version,
+                             std::vector<Tag>& result,std::vector<Submodule>& subm_failed);
+    bool FetchRemote(const Submodule& sm);
+    bool CreateTag(const Submodule& sm, const std::string& version);
+    bool MergeTag(const std::string& tag_name);
 
-    void printLastError() const;
+    void PrintLastError() const;
 public:
     git_repository* ptrRootRepo=nullptr;
     uint err_count=0;
@@ -33,7 +39,7 @@ public:
 
     std::vector<Submodule> getSubmodules();
     std::vector<Submodule> getSubmodules( git_repository* ptrRepo, const std::string& parent_dir);
-    bool createTags(const std::string& version);
+    bool createTags(const std::string& version);   
 
 };
 

@@ -13,7 +13,8 @@ add_compile_options(-Wall -Wextra)
 add_executable(submodule_util main.cpp
     submodule.hpp
     git2.hpp git2.cpp
-    submodule.cpp)
+    submodule.cpp
+    tag.hpp)
 target_link_libraries(submodule_util PRIVATE PkgConfig::LIBGIT2)
 
 
