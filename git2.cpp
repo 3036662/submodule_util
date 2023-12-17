@@ -3,7 +3,7 @@
 #include <memory>
 #include <cstring>
 #include <iomanip>
-#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/replace.hpp>
 
 
 
@@ -84,7 +84,7 @@ std::vector<Submodule> Git2::getSubmodules(git_repository* ptrRepo, const std::s
         // recursive call - put submoduler submodule.subvec
         if (curr_recursion_depth<max_recursion_depth){
             ++curr_recursion_depth;
-            it_sm->subvec = getSubmodules(it_sm->getRepo(),it_sm->path);
+            it_sm->subvec = getSubmodules(it_sm->getRepo(),it_sm->absolute_path);
             --curr_recursion_depth;
             if (!it_sm->subvec.empty())
                 ++recursion_depth_reached;
@@ -147,20 +147,26 @@ bool Git2::createTags(const std::string& version){
         }
         std::cout << std::endl << std::setw(50) << std::setfill('_') <<"\n";
         std::cout << "Following gear rules might be needed:" <<std::endl;
+        // gear rules
         for (const Tag& tag : res){
-            std::vector<std::string> split;
-            boost::split(split,tag.name,[](const char ch){return ch=='/';});
-            std::string suffix;
-            if (!split.empty()){
-                suffix=split[split.size()-1];
-            }
-            else {
-                suffix=tag.name;
-            }
+            std::string suffix=tag.path;
+            boost::replace_all(suffix,"/","-");
             std::cout << "tar:"
                       << tag.path
                       << "/@version@:. name=@name@-@version@-" << suffix
                       << " base=" << tag.path << std::endl;
+        }
+        // spec
+        std::cout << std::endl << "Spec rules for archives:"<< std::endl;
+        int arch_counter=1;
+        for (const Tag& tag : res){
+            std::string suffix=tag.path;
+            boost::replace_all(suffix,"/","-");
+            std::cout << "Source"<<arch_counter<<": "
+                      << "%name-%version-"
+                      << suffix<<".tar"
+                      <<std::endl;
+            ++arch_counter;
         }
     }
 
@@ -272,6 +278,7 @@ bool Git2::CreateTag(const Submodule& sm, const std::string& tag_name){
 }
 
 bool Git2::MergeTag(const std::string& tag_name){
+
     // reference to tag
     git_reference * tag_reference;
     int error = git_reference_lookup(&tag_reference,ptrRootRepo,
@@ -291,10 +298,10 @@ bool Git2::MergeTag(const std::string& tag_name){
     // perfom merge
     std::cout << "Started merging " << tag_name << std::endl;
     git_merge_options merge_opts = GIT_MERGE_OPTIONS_INIT;
-    merge_opts.flags = GIT_MERGE_NO_RECURSIVE ;
+    //merge_opts.flags = GIT_MERGE_NO_RECURSIVE ;
+    merge_opts.file_favor=GIT_MERGE_FILE_FAVOR_OURS;
     git_checkout_options checkout_opts = GIT_CHECKOUT_OPTIONS_INIT;
-    checkout_opts.checkout_strategy =GIT_CHECKOUT_USE_OURS | GIT_CHECKOUT_DONT_UPDATE_INDEX;
-    // merge_opts.ancestor_label = "ours";
+    checkout_opts.checkout_strategy =GIT_CHECKOUT_USE_OURS | GIT_CHECKOUT_DONT_UPDATE_INDEX ;
     git_merge(ptrRootRepo,(const git_annotated_commit **) &tag_commit, 1, &merge_opts, &checkout_opts);
     if (error){
       std::cerr << "Can't  merge " << tag_name << std::endl;
@@ -302,8 +309,91 @@ bool Git2::MergeTag(const std::string& tag_name){
       git_annotated_commit_free(tag_commit);
       return false;
     }
-    git_annotated_commit_free(tag_commit);
+    //git_annotated_commit_free(tag_commit); TODO Free
 
+
+    // COMMIT
+
+    git_signature *author;
+    error= git_signature_now(&author, "ALT submodules util", "proskur@altlinux.org");
+    if (error){
+        PrintLastError();
+        return false;
+    }
+
+    // get index for repo
+    git_index *index;
+    error =git_repository_index(&index, ptrRootRepo);
+    if (error){
+        std::cerr << "Can't find repository index " << std::endl;
+        PrintLastError();
+        return false;
+    }
+    // get reference to head
+    git_reference *head_ref;
+    git_repository_head(&head_ref, ptrRootRepo); // TODO free
+    if (error){
+        std::cerr << "Can't find reference to head "<<std::endl;
+        PrintLastError();
+        return false;
+    }
+
+    // get write_tree oid from index
+    git_oid tree_oid;
+    error = git_index_write_tree(&tree_oid, index);
+    if (error){
+        std::cerr << "failed to write merged tree " << std::endl;
+        PrintLastError();
+        return false;
+    }
+    // get tree* from tree_oid
+    git_tree *tree;
+    git_tree_lookup(&tree, ptrRootRepo, &tree_oid);
+    if (error){
+        std::cerr << "failed to lookup tree " << std::endl;
+        PrintLastError();
+        return false;
+    }
+
+    // get head_commit - parent
+    git_commit* head_commit=nullptr;
+    error =git_reference_peel((git_object **)&head_commit, head_ref, GIT_OBJECT_COMMIT);
+    if (error){
+        PrintLastError();
+        return false;
+    }
+
+
+    //create git_commit* from git_annotated_commit* (merge_annotated_commit)
+    const git_oid* annotated_oid=git_annotated_commit_id(tag_commit);
+    git_commit * merge_commit=nullptr;
+    error=git_commit_lookup(&merge_commit,ptrRootRepo,annotated_oid); // TODO free git_commit_free
+    if (error){
+        PrintLastError();
+        return false;
+    }
+
+    // head_commit and merge_commit are parents for current new commit
+    const git_commit *parent[] ={head_commit,merge_commit};
+    std::string commit_mesage= "Merge " + tag_name;
+    git_oid commit_oid;
+    error = git_commit_create(&commit_oid,
+                              ptrRootRepo,
+                              git_reference_name(head_ref), //name of HEAD
+                              author,
+                              author,
+                              "UTF-8",
+                              commit_mesage.c_str(),
+                              tree,
+                              2,
+                             parent
+                              );
+    if (error){
+        std::cerr << "failed to create commit for merge " << std::endl;
+        PrintLastError();
+        return false;
+    }
+    git_repository_state_cleanup(ptrRootRepo);
     return true;
 }
 
