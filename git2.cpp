@@ -168,6 +168,12 @@ bool Git2::createTags(const std::string& version){
                       <<std::endl;
             ++arch_counter;
         }
+        std::cout << std::endl << "%setup:";
+        int arch_counter2=0;
+        while(arch_counter2<arch_counter){
+            std::cout << " -a"<<arch_counter2;
+            ++arch_counter2;
+        }
     }
 
     if (!subm_failed.empty()){
