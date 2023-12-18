@@ -20,7 +20,9 @@ class Options {
    bool Help() const;
    std::string GetPath() const;
    std::string GetUrl() const;
+   std::string GetVersion() const;
    std::optional<std::vector<std::string>> GetExludes() const;
+
 };
 
 #endif  // OPTIONS_HPP

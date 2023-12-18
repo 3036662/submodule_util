@@ -9,9 +9,9 @@ Options::Options(int argc,char**& argv)
     description.add_options()
         ("help", "produce this help message")
         ("path", po::value<std::string>(), "path to local repo")
-        ("version",po::value<std::string>(), "package vesion from spec")
-        ("exclude",po::value<std::string>(),"path to file containig simple list of submodules to exclude")
-        ("url", po::value<std::string>(), "git url");
+        ("version",po::value<std::string>(), "package version from spec")
+        ("exclude",po::value<std::string>(),"path to file containig simple list of submodule names to exclude (one line - one name)")
+        ("url", po::value<std::string>(), "git url to clone if path don't exist");
     try{
         po::store(parse_command_line(argc, argv, description), var_map);
     }
@@ -19,10 +19,16 @@ Options::Options(int argc,char**& argv)
        std::cerr << "Wrong parameters, see --help"<<std::endl;
        wrong_params=true;
     }
+    catch(boost::wrapexcept<boost::program_options::unknown_option>& ex){
+        std::cerr << "Unknown option passed." <<std::endl
+                  <<ex.what() << std::endl;
+        wrong_params=true;
+    }
 }
 
 
 bool Options::Help() const{
+    std::cout << "This tool recursively updates git submodules, create tags and merges them into the current branch"<<std::endl;
     if (var_map.size()==0 || var_map.count("help")) {
         std::cout << description << "\n";
         return true;
@@ -34,8 +40,11 @@ std::string Options::GetPath() const{
       std::string local_path;
       if (var_map.count("path")){
           local_path=var_map["path"].as<std::string>();
+          local_path =ResolvePath(local_path);
       }
-      local_path =ResolvePath(local_path);
+      else{
+          std::cerr << "You need to specify path to repository" << std::endl;
+      }
       return local_path;
 }
 
@@ -69,6 +78,17 @@ std::optional<std::vector<std::string>> Options::GetExludes() const{
     }
     fs.close();
     return excludes;
+}
+
+std::string Options::GetVersion() const{
+    std::string version;
+    if (var_map.count("version")){
+        version=var_map["version"].as<std::string>();
+    }
+    else{
+        std::cerr << "Package version is required (must be same as in the .spec file" <<std::endl;
+    }
+    return version;
 }
 
 
