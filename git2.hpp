@@ -36,12 +36,14 @@ class Git2 {
     bool Open(const std::string& path);
     bool Clone(const std::string& upstream, const std::string& path);
 
+    std::vector<Submodule> GetSubmodules(const std::vector<std::string>& excludes);
+    std::vector<Submodule> GetSubmodules(git_repository* ptrRepo,
+                                         const std::string& parent_dir,
+                                         const std::vector<std::string>& excludes
+                                         );
+    bool CreateTags(const std::string& version);
+
     // C callback for git_submodule_foreach
     static int SubmouduleForeachCallbackC(git_submodule* sm, const char* name,
                                           void* payload);
-
-    std::vector<Submodule> GetSubmodules();
-    std::vector<Submodule> GetSubmodules(git_repository* ptrRepo,
-                                         const std::string& parent_dir);
-    bool CreateTags(const std::string& version);
 };

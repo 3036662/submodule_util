@@ -1,10 +1,12 @@
 #include "git2.hpp"
 
 #include <boost/algorithm/string/replace.hpp>
+#include <boost/algorithm/string.hpp>
 #include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <algorithm>
 
 Git2::Git2() { git_libgit2_init(); }
 
@@ -42,12 +44,12 @@ bool Git2::Clone(const std::string& upstreamUrl, const std::string& path) {
     return true;
 }
 
-std::vector<Submodule> Git2::GetSubmodules() {
-    return GetSubmodules(ptr_root_repo, "");
+std::vector<Submodule> Git2::GetSubmodules(const std::vector<std::string>& excludes) {
+    return GetSubmodules(ptr_root_repo, "",excludes);
 }
 
 std::vector<Submodule> Git2::GetSubmodules(git_repository* ptrRepo,
-                                           const std::string& parent_dir) {
+                                           const std::string& parent_dir,const std::vector<std::string>& excludes) {
     std::vector<Submodule> res;
     err_count = 0;
     if (!ptrRepo) {
@@ -73,8 +75,17 @@ std::vector<Submodule> Git2::GetSubmodules(git_repository* ptrRepo,
         } else
             it->absolute_url = it->url;
     }
+
     // init + update
     for (auto it_sm = res.begin(); it_sm != res.end(); ++it_sm) {
+        // if submodule path contains any string of exclude list -> skip
+        if (std::find(excludes.cbegin(),excludes.end(),it_sm->name)!=excludes.cend()) {
+            std::cout << std::setw(50) << std::setfill('_') << '\n';
+            std::cout << "Skipping " << it_sm->name << " (Exclude list)"<<std::endl;
+            it_sm->excluded=true;
+            continue;
+        }
+
         std::cout << *it_sm;
         it_sm->Init();
         if (it_sm->Update(false))
@@ -88,7 +99,7 @@ std::vector<Submodule> Git2::GetSubmodules(git_repository* ptrRepo,
         if (curr_recursion_depth < max_recursion_depth) {
             ++curr_recursion_depth;
             it_sm->subvec =
-                GetSubmodules(it_sm->GetRepo(), it_sm->absolute_path);
+                GetSubmodules(it_sm->GetRepo(), it_sm->absolute_path,excludes);
             --curr_recursion_depth;
             if (!it_sm->subvec.empty()) ++recursion_depth_reached;
         }
@@ -103,6 +114,7 @@ void Git2::CreateTagsRecursive(const std::vector<Submodule>& vec,
                                std::vector<Tag>& result,
                                std::vector<Submodule>& subm_failed) {
     for (auto it = vec.begin(); it != vec.end(); ++it) {
+        if (it->excluded) continue;
         // recursive call
         if (!it->subvec.empty()) {
             CreateTagsRecursive(it->subvec, version, result, subm_failed);
@@ -145,7 +157,7 @@ bool Git2::CreateTags(const std::string& version) {
         std::cout << "Processing tags is finished.";
     if (!res.empty()) {
         std::cout << std::endl << std::setw(50) << std::setfill('_') << "\n";
-        std::cout << "Updates should be commited for tags:\n";
+        std::cout << "Updates were commited (please,check git log) for tags:\n";
         for (const Tag& tag : res) {
             std::cout << tag.name << std::endl;
         }
