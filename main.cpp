@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
             git.Clone(url, path);
         else{
             std::cerr << "Can't open repo at path " << path <<std::endl
-                      << "Can't clone because you didn't path a git URL" <<std::endl;
+                      << "Can't clone because you didn't pass a git URL" <<std::endl;
             return 0;
         }
     }
