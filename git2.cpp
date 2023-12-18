@@ -22,7 +22,7 @@ bool Git2::Open(const std::string& path) {
     if (error) {
         std::cerr << std::endl
                   << "Failed opening repo at  " << path << std::endl;
-        std::cerr << git_error_last()->message << std::endl;
+       PrintLastError();
         return false;
     }
     return true;
@@ -30,12 +30,13 @@ bool Git2::Open(const std::string& path) {
 
 bool Git2::Clone(const std::string& upstreamUrl, const std::string& path) {
     if (upstreamUrl.empty() || path.empty()) return false;
+    std::cout << "Cloning " << upstreamUrl << " to " << path << std::endl;
     int error =
         git_clone(&ptr_root_repo, upstreamUrl.c_str(), path.c_str(), NULL);
     if (error) {
         std::cerr << "error while performing git clone " << upstreamUrl
                   << std::endl;
-        std::cerr << git_error_last()->message << std::endl;
+        PrintLastError();
         return false;
     }
     return true;
@@ -56,7 +57,7 @@ std::vector<Submodule> Git2::GetSubmodules(git_repository* ptrRepo,
         git_submodule_foreach(ptrRepo, Git2::SubmouduleForeachCallbackC, &res);
     if (error) {
         std::cerr << "Error getting submodules" << std::endl;
-        std::cerr << git_error_last()->message << std::endl;
+         PrintLastError();
     }
     // resolve urls and paths
     for (auto it = res.begin(); it != res.end(); ++it) {
