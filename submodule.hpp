@@ -7,11 +7,11 @@
 
 class  Submodule
 {
-    git_submodule* ptrSubmodule = nullptr;
-    git_repository*  ptrRepo = nullptr;
+    git_submodule* ptr_submodule = nullptr;
+    git_repository*  ptr_repo = nullptr;
 public:
-    const git_oid* ptrheadOidBinary;
-    std::string headOid;
+    const git_oid* ptr_head_oid_binary;
+    std::string head_oid;
     std::string name;
     std::string path;
     std::string absolute_path;
@@ -27,17 +27,17 @@ public:
                         const std::string& name_,
                         const std::string& path_,
                         const std::string& url_)
-        : ptrSubmodule(sm_), ptrheadOidBinary(hOid),headOid(headOidStr_), name(name_), path(path_),url(url_){}
+        : ptr_submodule(sm_), ptr_head_oid_binary(hOid),head_oid(headOidStr_), name(name_), path(path_),url(url_){}
 
-    bool init(bool override=false);
-    bool update(bool init=false);
-    git_repository* getRepo();
-    void freeRepo();
+    bool Init(bool override=false);
+    bool Update(bool init=false);
+    git_repository* GetRepo();
+    void FreeRepo();
 
 private:
-    void updatePtrSM();
-    void freePtrSM();
-    void printLastError() const;
+    void UpdatePtrSM();
+    void FreePtrSM();
+    void PrintLastError() const;
 
 };
 
