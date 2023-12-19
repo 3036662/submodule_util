@@ -7,7 +7,7 @@
 
 class Submodule {
     git_submodule* ptr_submodule = nullptr;
-    git_repository* ptr_repo = nullptr;    
+    git_repository* ptr_repo = nullptr;
 
    public:
     const git_oid* ptr_head_oid_binary;
@@ -19,7 +19,7 @@ class Submodule {
     std::string absolute_url;
     git_repository* owner = nullptr;
     std::vector<Submodule> subvec;
-    bool excluded=false;
+    bool excluded = false;
 
     Submodule() = delete;
     Submodule(git_submodule* sm_, const git_oid* hOid,

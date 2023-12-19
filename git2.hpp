@@ -35,15 +35,16 @@ class Git2 {
     Git2();
     ~Git2();
 
-    bool OverrideCommiter(const std::pair<std::string,std::string>& commiter_data);
+    bool OverrideCommiter(
+        const std::pair<std::string, std::string>& commiter_data);
     bool Open(const std::string& path);
     bool Clone(const std::string& upstream, const std::string& path);
 
-    std::vector<Submodule> GetSubmodules(const std::vector<std::string>& excludes);
-    std::vector<Submodule> GetSubmodules(git_repository* ptrRepo,
-                                         const std::string& parent_dir,
-                                         const std::vector<std::string>& excludes
-                                         );
+    std::vector<Submodule> GetSubmodules(
+        const std::vector<std::string>& excludes);
+    std::vector<Submodule> GetSubmodules(
+        git_repository* ptrRepo, const std::string& parent_dir,
+        const std::vector<std::string>& excludes);
     bool CreateTags(const std::string& version);
 
     // C callback for git_submodule_foreach

@@ -1,57 +1,60 @@
 #include "git2.hpp"
 
-#include <boost/algorithm/string/replace.hpp>
+#include <algorithm>
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <memory>
-#include <algorithm>
 
 Git2::Git2() {
     git_libgit2_init();
 
     // get global config
-    git_config* global_config=nullptr;
-    int error=git_config_open_default(&global_config);
-    if (error){
-        std::cerr<< "Can't open global git config";
+    git_config* global_config = nullptr;
+    int error = git_config_open_default(&global_config);
+    if (error) {
+        std::cerr << "Can't open global git config";
         PrintLastError();
     }
     git_config* config_snapshot = nullptr;
-    error = git_config_snapshot(&config_snapshot,global_config);
-    if (error){
-        std::cerr<< "Can't make global git config snapshot";
+    error = git_config_snapshot(&config_snapshot, global_config);
+    if (error) {
+        std::cerr << "Can't make global git config snapshot";
         PrintLastError();
     }
 
     std::unique_ptr<char> buf_name(new char[255]);
-    char* ptr_buf_name=buf_name.get();
-    std::memset(ptr_buf_name,0,255);
+    char* ptr_buf_name = buf_name.get();
+    std::memset(ptr_buf_name, 0, 255);
     std::unique_ptr<char> buf_emai(new char[255]);
-    char* ptr_buf_email=buf_name.get();
-    std::memset(ptr_buf_email,0,255);
-    error=git_config_get_string(const_cast<const char**>(&ptr_buf_name),
-                                  config_snapshot,"user.name");
-    if (error){
-        std::cerr << "Can't find a commiter name in git config,, please use override (--help)" <<  std::endl;
-        git_commiter_name="Submodule_Update Uitl";
+    char* ptr_buf_email = buf_name.get();
+    std::memset(ptr_buf_email, 0, 255);
+    error = git_config_get_string(const_cast<const char**>(&ptr_buf_name),
+                                  config_snapshot, "user.name");
+    if (error) {
+        std::cerr << "Can't find a commiter name in git config,, please use "
+                     "override (--help)"
+                  << std::endl;
+        git_commiter_name = "Submodule_Update Uitl";
         PrintLastError();
+    } else {
+        git_commiter_name = ptr_buf_name;
     }
-    else{
-        git_commiter_name =ptr_buf_name;
-    }
-    error=git_config_get_string(const_cast<const char**>(&ptr_buf_email),config_snapshot,"user.email");
-    if (error){
-        std::cerr << "Can't find a commiter email in git config, please use override (--help) " <<  std::endl;
-        git_commiter_email="example@altlinux.org";
+    error = git_config_get_string(const_cast<const char**>(&ptr_buf_email),
+                                  config_snapshot, "user.email");
+    if (error) {
+        std::cerr << "Can't find a commiter email in git config, please use "
+                     "override (--help) "
+                  << std::endl;
+        git_commiter_email = "example@altlinux.org";
         PrintLastError();
+    } else {
+        git_commiter_email = ptr_buf_email;
     }
-    else {
-        git_commiter_email=ptr_buf_email;
-    }
-    std::cout << "Commiter Name: "<< git_commiter_name
-              << " Email: " << git_commiter_email<< std::endl;
+    std::cout << "Commiter Name: " << git_commiter_name
+              << " Email: " << git_commiter_email << std::endl;
     git_config_free(config_snapshot);
     git_config_free(global_config);
 }
@@ -63,16 +66,16 @@ Git2::~Git2() {
     git_libgit2_shutdown();
 }
 
-
-bool Git2::OverrideCommiter(const std::pair<std::string,std::string>& commiter_data){
-    if (commiter_data.first.empty() || commiter_data.second.empty()){
-        std::cerr << "Commiter name and email can't be empty" <<std::endl;
+bool Git2::OverrideCommiter(
+    const std::pair<std::string, std::string>& commiter_data) {
+    if (commiter_data.first.empty() || commiter_data.second.empty()) {
+        std::cerr << "Commiter name and email can't be empty" << std::endl;
         return false;
     }
     git_commiter_name = commiter_data.first;
     git_commiter_email = commiter_data.second;
-    std::cout << "Commiter data overrided with Name: "<< git_commiter_name
-              <<" Email: " << git_commiter_email <<std::endl;
+    std::cout << "Commiter data overrided with Name: " << git_commiter_name
+              << " Email: " << git_commiter_email << std::endl;
     return true;
 }
 
@@ -83,7 +86,7 @@ bool Git2::Open(const std::string& path) {
     if (error) {
         std::cerr << std::endl
                   << "Failed opening repo at  " << path << std::endl;
-       PrintLastError();
+        PrintLastError();
         return false;
     }
     return true;
@@ -103,13 +106,14 @@ bool Git2::Clone(const std::string& upstreamUrl, const std::string& path) {
     return true;
 }
 
-
-std::vector<Submodule> Git2::GetSubmodules(const std::vector<std::string>& excludes) {
-    return GetSubmodules(ptr_root_repo, "",excludes);
+std::vector<Submodule> Git2::GetSubmodules(
+    const std::vector<std::string>& excludes) {
+    return GetSubmodules(ptr_root_repo, "", excludes);
 }
 
-std::vector<Submodule> Git2::GetSubmodules(git_repository* ptrRepo,
-                                           const std::string& parent_dir,const std::vector<std::string>& excludes) {
+std::vector<Submodule> Git2::GetSubmodules(
+    git_repository* ptrRepo, const std::string& parent_dir,
+    const std::vector<std::string>& excludes) {
     std::vector<Submodule> res;
     err_count = 0;
     if (!ptrRepo) {
@@ -119,7 +123,7 @@ std::vector<Submodule> Git2::GetSubmodules(git_repository* ptrRepo,
         git_submodule_foreach(ptrRepo, Git2::SubmouduleForeachCallbackC, &res);
     if (error) {
         std::cerr << "Error getting submodules" << std::endl;
-         PrintLastError();
+        PrintLastError();
     }
     // resolve urls and paths
     for (auto it = res.begin(); it != res.end(); ++it) {
@@ -139,10 +143,12 @@ std::vector<Submodule> Git2::GetSubmodules(git_repository* ptrRepo,
     // init + update
     for (auto it_sm = res.begin(); it_sm != res.end(); ++it_sm) {
         // if submodule path contains any string of exclude list -> skip
-        if (std::find(excludes.cbegin(),excludes.end(),it_sm->name)!=excludes.cend()) {
+        if (std::find(excludes.cbegin(), excludes.end(), it_sm->name) !=
+            excludes.cend()) {
             std::cout << std::setw(50) << std::setfill('_') << '\n';
-            std::cout << "Skipping " << it_sm->name << " (Exclude list)"<<std::endl;
-            it_sm->excluded=true;
+            std::cout << "Skipping " << it_sm->name << " (Exclude list)"
+                      << std::endl;
+            it_sm->excluded = true;
             continue;
         }
 
@@ -159,7 +165,7 @@ std::vector<Submodule> Git2::GetSubmodules(git_repository* ptrRepo,
         if (curr_recursion_depth < max_recursion_depth) {
             ++curr_recursion_depth;
             it_sm->subvec =
-                GetSubmodules(it_sm->GetRepo(), it_sm->absolute_path,excludes);
+                GetSubmodules(it_sm->GetRepo(), it_sm->absolute_path, excludes);
             --curr_recursion_depth;
             if (!it_sm->subvec.empty()) ++recursion_depth_reached;
         }
@@ -401,7 +407,7 @@ bool Git2::MergeTag(const std::string& tag_name) {
 
     // COMMIT
     git_signature* author;
-    error = git_signature_now(&author,git_commiter_name.c_str(),
+    error = git_signature_now(&author, git_commiter_name.c_str(),
                               git_commiter_email.c_str());
     if (error) {
         PrintLastError();
