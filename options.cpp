@@ -11,7 +11,9 @@ Options::Options(int argc,char**& argv)
         ("path", po::value<std::string>(), "path to local repo")
         ("version",po::value<std::string>(), "package version from spec")
         ("exclude",po::value<std::string>(),"path to file containig simple list of submodule names to exclude (one line - one name)")
-        ("url", po::value<std::string>(), "git url to clone if path don't exist");
+        ("url", po::value<std::string>(), "git url to clone if path don't exist")
+        ("committer",po::value<std::string>(),"Name to override global git config committer. Example \"Jhon Doe\"")
+        ("email",po::value<std::string>(),"Email to override global git config committer email");
     try{
         po::store(parse_command_line(argc, argv, description), var_map);
     }
@@ -89,6 +91,26 @@ std::string Options::GetVersion() const{
         std::cerr << "Package version is required (must be same as in the .spec file" <<std::endl;
     }
     return version;
+}
+
+std::optional<std::pair<std::string,std::string>> Options::GetCommitter() const{
+         std::string name;
+         std::string email;
+         switch (var_map.count("committer") + var_map.count("email")){
+             case 0:
+                 return {};
+                 break;
+             case 1:
+                 std::cerr << "You need to provide both --committer  and --email"<<std::endl;
+                 return {};
+                 break;
+             default:;
+         }
+
+         name=var_map["committer"].as<std::string>();
+         email = var_map["email"].as<std::string>();
+         if (name.empty() || email.empty()) return {};
+         return std::make_pair<std::string,std::string>(std::move(name),std::move(email));
 }
 
 

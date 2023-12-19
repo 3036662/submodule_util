@@ -8,13 +8,72 @@
 #include <memory>
 #include <algorithm>
 
-Git2::Git2() { git_libgit2_init(); }
+Git2::Git2() {
+    git_libgit2_init();
+
+    // get global config
+    git_config* global_config=nullptr;
+    int error=git_config_open_default(&global_config);
+    if (error){
+        std::cerr<< "Can't open global git config";
+        PrintLastError();
+    }
+    git_config* config_snapshot = nullptr;
+    error = git_config_snapshot(&config_snapshot,global_config);
+    if (error){
+        std::cerr<< "Can't make global git config snapshot";
+        PrintLastError();
+    }
+
+    std::unique_ptr<char> buf_name(new char[255]);
+    char* ptr_buf_name=buf_name.get();
+    std::memset(ptr_buf_name,0,255);
+    std::unique_ptr<char> buf_emai(new char[255]);
+    char* ptr_buf_email=buf_name.get();
+    std::memset(ptr_buf_email,0,255);
+    error=git_config_get_string(const_cast<const char**>(&ptr_buf_name),
+                                  config_snapshot,"user.name");
+    if (error){
+        std::cerr << "Can't find a commiter name in git config,, please use override (--help)" <<  std::endl;
+        git_commiter_name="Submodule_Update Uitl";
+        PrintLastError();
+    }
+    else{
+        git_commiter_name =ptr_buf_name;
+    }
+    error=git_config_get_string(const_cast<const char**>(&ptr_buf_email),config_snapshot,"user.email");
+    if (error){
+        std::cerr << "Can't find a commiter email in git config, please use override (--help) " <<  std::endl;
+        git_commiter_email="example@altlinux.org";
+        PrintLastError();
+    }
+    else {
+        git_commiter_email=ptr_buf_email;
+    }
+    std::cout << "Commiter Name: "<< git_commiter_name
+              << " Email: " << git_commiter_email<< std::endl;
+    git_config_free(config_snapshot);
+    git_config_free(global_config);
+}
 
 Git2::~Git2() {
     if (ptr_root_repo) {
         git_repository_free(ptr_root_repo);
     }
     git_libgit2_shutdown();
+}
+
+
+bool Git2::OverrideCommiter(const std::pair<std::string,std::string>& commiter_data){
+    if (commiter_data.first.empty() || commiter_data.second.empty()){
+        std::cerr << "Commiter name and email can't be empty" <<std::endl;
+        return false;
+    }
+    git_commiter_name = commiter_data.first;
+    git_commiter_email = commiter_data.second;
+    std::cout << "Commiter data overrided with Name: "<< git_commiter_name
+              <<" Email: " << git_commiter_email <<std::endl;
+    return true;
 }
 
 bool Git2::Open(const std::string& path) {
@@ -43,6 +102,7 @@ bool Git2::Clone(const std::string& upstreamUrl, const std::string& path) {
     }
     return true;
 }
+
 
 std::vector<Submodule> Git2::GetSubmodules(const std::vector<std::string>& excludes) {
     return GetSubmodules(ptr_root_repo, "",excludes);
@@ -314,7 +374,7 @@ bool Git2::MergeTag(const std::string& tag_name) {
     // annotated commit
     git_annotated_commit* tag_commit;
     error = git_annotated_commit_from_ref(&tag_commit, ptr_root_repo,
-                                          tag_reference);  // FREE
+                                          tag_reference);
     if (error) {
         std::cerr << "Can't create annotated commit from refference to tag"
                   << std::endl;
@@ -341,8 +401,8 @@ bool Git2::MergeTag(const std::string& tag_name) {
 
     // COMMIT
     git_signature* author;
-    error = git_signature_now(&author, "ALT submodules util",
-                              "proskur@altlinux.org");
+    error = git_signature_now(&author,git_commiter_name.c_str(),
+                              git_commiter_email.c_str());
     if (error) {
         PrintLastError();
         return false;

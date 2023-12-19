@@ -21,6 +21,7 @@ class Options {
    std::string GetPath() const;
    std::string GetUrl() const;
    std::string GetVersion() const;
+   std::optional<std::pair<std::string,std::string>> GetCommitter() const;
    std::optional<std::vector<std::string>> GetExludes() const;
 
 };

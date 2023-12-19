@@ -29,10 +29,13 @@ class Git2 {
     uint curr_recursion_depth = 0;
     uint recursion_depth_reached = 0;
     uint total_submodules_updated = 0;
+    std::string git_commiter_name;
+    std::string git_commiter_email;
 
     Git2();
     ~Git2();
 
+    bool OverrideCommiter(const std::pair<std::string,std::string>& commiter_data);
     bool Open(const std::string& path);
     bool Clone(const std::string& upstream, const std::string& path);
 

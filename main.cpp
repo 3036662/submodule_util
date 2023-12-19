@@ -16,8 +16,14 @@ int main(int argc, char* argv[]) {
     if (!excludes) return -1;
     std::string pkg_version=opts.GetVersion();
     if (pkg_version.empty()) return 0;
-
     Git2 git;
+    std::optional<std::pair<std::string,std::string>> override_committer=opts.GetCommitter();
+    if (override_committer){
+        if(!git.OverrideCommiter(override_committer.value())){
+            std::cerr << "Error occured. Commiter data override failed"<<std::endl;
+        }
+    }
+
     // open repo or git clone if url is defined
     if (!git.Open(path)){
         if (!url.empty())
@@ -28,6 +34,7 @@ int main(int argc, char* argv[]) {
             return 0;
         }
     }
+
 
     git.GetSubmodules(excludes.value());
     std::cout << "\nTotal submodules updated : "
