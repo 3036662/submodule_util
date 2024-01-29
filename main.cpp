@@ -19,6 +19,7 @@ int main(int argc, char* argv[]) {
     std::string pkg_version = opts.GetVersion();
     if (pkg_version.empty()) return 0;
     Git2 git;
+    // override commiter if passed
     std::optional<std::pair<std::string, std::string>> override_committer =
         opts.GetCommitter();
     if (override_committer) {
@@ -50,7 +51,8 @@ int main(int argc, char* argv[]) {
                   << " submodules (see WARINGS) " << std::endl;
 
     // this strategy creating no mess in files but creating terrible mess in git
-    git.CreateTags(pkg_version);
-
+    if (!opts.var_map.count("only-update")){
+        git.CreateTags(pkg_version);
+    }
     return 0;
 }
