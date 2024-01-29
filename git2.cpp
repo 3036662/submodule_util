@@ -117,6 +117,7 @@ std::vector<Submodule> Git2::GetSubmodules(
     std::vector<Submodule> res;
     err_count = 0;
     if (!ptrRepo) {
+        std::cerr << "Error. Repo not found" <<std::endl;
         return res;
     }
     int error =
