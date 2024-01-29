@@ -249,7 +249,7 @@ bool Git2::CreateTags(const std::string& version) {
         }
         std::cout << std::endl << "%setup:";
         int arch_counter2 = 0;
-        while (arch_counter2 <= arch_counter) {
+        while (arch_counter2 < arch_counter) {
             std::cout << " -a" << arch_counter2;
             ++arch_counter2;
         }
@@ -272,6 +272,9 @@ int Git2::SubmouduleForeachCallbackC(git_submodule* sm, const char* name_,
         static_cast<std::vector<Submodule>*>(ptrResultVector);
     // head oid or NULL
     const git_oid* head_oid = git_submodule_head_id(sm);
+    if (!head_oid){
+        std::cerr<< "WARNING Submodule " << name_ << "is in DETACHED state";
+    }
     char buffer[100] = {0};
     // head hash 40 symbols
     std::string head_oid_Str;
