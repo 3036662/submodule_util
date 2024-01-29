@@ -15,7 +15,8 @@ Options::Options(int argc, char**& argv) : description("Allowed options") {
         "committer", po::value<std::string>(),
         "Name to override global git config committer. Example \"Jhon Doe\"")(
         "email", po::value<std::string>(),
-        "Email to override global git config committer email");
+        "Email to override global git config committer email")
+        ("only-update","Only init and update submodules, no tags,no merges");
     try {
         po::store(parse_command_line(argc, argv, description), var_map);
     } catch (
